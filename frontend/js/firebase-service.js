@@ -17,6 +17,17 @@
 
   const firebaseConfig = (window && window.__FIREBASE_CONFIG__) ? window.__FIREBASE_CONFIG__ : defaultConfig;
 
+  const isPlaceholderConfig = () => {
+    return !firebaseConfig
+      || !firebaseConfig.apiKey
+      || firebaseConfig.apiKey === 'YOUR_API_KEY'
+      || !firebaseConfig.authDomain
+      || !firebaseConfig.projectId
+      || !firebaseConfig.storageBucket
+      || !firebaseConfig.messagingSenderId
+      || !firebaseConfig.appId;
+  };
+
   let _initialized = false;
   let _db = null;
 
@@ -26,6 +37,10 @@
       if (typeof firebase === 'undefined') {
         console.warn('Firebase SDK not loaded.');
         return;
+      }
+
+      if (isPlaceholderConfig()) {
+        console.warn('Firebase config still contains placeholder values.');
       }
 
       firebase.initializeApp(firebaseConfig);
@@ -46,7 +61,10 @@
       created_at: new Date().toISOString()
     };
 
+    console.info('Writing document to Firestore...', payload);
+
     const ref = await _db.collection('contact_submissions').add(payload);
+    console.info('Firestore write completed', ref.id);
     return { id: ref.id, ...payload };
   }
 
