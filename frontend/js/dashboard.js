@@ -1,3 +1,136 @@
+/* Dashboard data loader: prefers Firebase, falls back to IndexedDB */
+(function () {
+  const refreshIntervalMs = 6000;
+  let timer = null;
+
+  const $ = id => document.getElementById(id);
+
+  const renderTable = (rows) => {
+    const tableBody = $('tableBody');
+    const tableCount = $('tableCount');
+    const submissionCount = $('submissionCount');
+    const latestSubmission = $('latestSubmission');
+    const uniqueCompanies = $('uniqueCompanies');
+
+    if (!tableBody) return;
+    tableBody.innerHTML = '';
+
+    if (!rows || rows.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state">No submissions found.</div></td></tr>`;
+      tableCount.textContent = '0 rows';
+      submissionCount.textContent = '0';
+      latestSubmission.textContent = '—';
+      uniqueCompanies.textContent = '0';
+      return;
+    }
+
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.id || ''}</td>
+        <td>${r.first_name || ''}</td>
+        <td>${r.last_name || ''}</td>
+        <td>${r.email || ''}</td>
+        <td>${r.company || ''}</td>
+        <td>${(r.message || '').replace(/</g, '&lt;')}</td>
+        <td>${r.created_at || ''}</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    tableCount.textContent = `${rows.length} rows`;
+    submissionCount.textContent = String(rows.length);
+    latestSubmission.textContent = rows[0]?.created_at || '—';
+    const companies = new Set(rows.map(r => (r.company || '').trim()).filter(Boolean));
+    uniqueCompanies.textContent = String(companies.size);
+  };
+
+  const showError = (msg) => {
+    const eb = $('errorBanner');
+    if (!eb) return;
+    eb.style.display = 'block';
+    eb.textContent = msg;
+  };
+
+  const hideLoading = () => {
+    const l = $('loading');
+    if (l) l.style.display = 'none';
+  };
+
+  async function loadAndRender() {
+    const lastUpdated = $('lastUpdated');
+    try {
+      hideLoading();
+      let rows = [];
+      // Try Firebase first
+      if (window.FirebaseService && typeof FirebaseService.fetchSubmissions === 'function') {
+        try {
+          rows = await FirebaseService.fetchSubmissions();
+        } catch (err) {
+          console.warn('Firebase fetch failed, falling back to local DB', err);
+          rows = await RecarbonDB.getAllSubmissions();
+        }
+      } else {
+        rows = await RecarbonDB.getAllSubmissions();
+      }
+
+      // ensure sorted by created_at desc
+      rows = rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      renderTable(rows);
+      if (lastUpdated) lastUpdated.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
+      const refreshLabel = $('refreshLabel');
+      if (refreshLabel) refreshLabel.textContent = `Auto-refresh every ${refreshIntervalMs/1000} seconds`;
+      $('errorBanner')?.style && ($('errorBanner').style.display = 'none');
+    } catch (err) {
+      console.error(err);
+      showError('Failed to load submissions. Check console for details.');
+    }
+  }
+
+  function startAutoRefresh() {
+    if (timer) clearInterval(timer);
+    timer = setInterval(loadAndRender, refreshIntervalMs);
+  }
+
+  function setupSearch() {
+    const input = $('searchInput');
+    if (!input) return;
+    input.addEventListener('input', async (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      let rows = [];
+      try {
+        if (window.FirebaseService && typeof FirebaseService.fetchSubmissions === 'function') {
+          rows = await FirebaseService.fetchSubmissions();
+        } else {
+          rows = await RecarbonDB.getAllSubmissions();
+        }
+      } catch (err) {
+        rows = [];
+      }
+
+      if (q) {
+        rows = rows.filter(r => {
+          return (r.first_name||'').toLowerCase().includes(q)
+            || (r.last_name||'').toLowerCase().includes(q)
+            || (r.email||'').toLowerCase().includes(q)
+            || (r.company||'').toLowerCase().includes(q)
+            || (r.message||'').toLowerCase().includes(q);
+        });
+      }
+
+      renderTable(rows);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const refreshButton = $('refreshButton');
+    if (refreshButton) refreshButton.addEventListener('click', loadAndRender);
+    setupSearch();
+    loadAndRender();
+    startAutoRefresh();
+  });
+
+})();
 (() => {
   const REFRESH_MS = 6000;
 

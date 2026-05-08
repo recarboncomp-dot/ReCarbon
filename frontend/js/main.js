@@ -129,6 +129,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Save to IndexedDB
         await RecarbonDB.addSubmission(formData);
 
+        // Also attempt to save to Firebase if configured (non-blocking)
+        try {
+          if (window.FirebaseService && typeof FirebaseService.saveSubmission === 'function') {
+            FirebaseService.saveSubmission(formData).then(() => {
+              console.info('Saved submission to Firebase');
+            }).catch(err => console.warn('Failed saving to Firebase', err));
+          }
+        } catch (err) {
+          console.warn('Firebase save attempt failed', err);
+        }
+
         form.reset();
         fields.forEach(field => setFieldState(field, ''));
         setStatus('Your message was saved successfully.', 'success');
