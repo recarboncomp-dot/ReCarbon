@@ -1,12 +1,31 @@
-/* Auto-generated firebase-service.js — created by CI from secrets */
+/*
+  Firebase Service Wrapper (compat)
+  - Replace the `firebaseConfig` object with your project's values from the Firebase console.
+  - This file uses the compat SDK loaded via CDN in the HTML files.
+*/
 (function () {
-  const firebaseConfig = {
-    apiKey: "AIzaSyARdsqf7gJU7XTe9xdvZYNzbsJKRQ8kJ_I",
-    authDomain: "recarbon-a09b7.firebaseapp.com",
-    projectId: "recarbon-a09b7",
-    storageBucket: "recarbon-a09b7.firebasestorage.app",
-    messagingSenderId: "309718424003",
-    appId: "1:309718424003:web:6f34142d512e7d35c04576"
+  // firebaseConfig may be injected during CI/deploy as a generated file
+  // or provided at runtime via `window.__FIREBASE_CONFIG__`.
+  const defaultConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const firebaseConfig = (window && window.__FIREBASE_CONFIG__) ? window.__FIREBASE_CONFIG__ : defaultConfig;
+
+  const isPlaceholderConfig = () => {
+    return !firebaseConfig
+      || !firebaseConfig.apiKey
+      || firebaseConfig.apiKey === 'YOUR_API_KEY'
+      || !firebaseConfig.authDomain
+      || !firebaseConfig.projectId
+      || !firebaseConfig.storageBucket
+      || !firebaseConfig.messagingSenderId
+      || !firebaseConfig.appId;
   };
 
   let _initialized = false;
@@ -18,6 +37,10 @@
       if (typeof firebase === 'undefined') {
         console.warn('Firebase SDK not loaded.');
         return;
+      }
+
+      if (isPlaceholderConfig()) {
+        console.warn('Firebase config still contains placeholder values.');
       }
 
       firebase.initializeApp(firebaseConfig);
@@ -38,7 +61,10 @@
       created_at: new Date().toISOString()
     };
 
+    console.info('Writing document to Firestore...', payload);
+
     const ref = await _db.collection('contact_submissions').add(payload);
+    console.info('Firestore write completed', ref.id);
     return { id: ref.id, ...payload };
   }
 
