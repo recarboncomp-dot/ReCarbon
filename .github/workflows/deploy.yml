@@ -1,0 +1,83 @@
+name: Deploy to GitHub Pages (inject Firebase config)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create firebase-service.js from secrets
+        run: |
+          mkdir -p frontend/js
+          cat > frontend/js/firebase-service.js <<'EOF'
+          /* Auto-generated firebase-service.js — created by CI from secrets */
+          (function () {
+            const firebaseConfig = {
+              apiKey: "${{ secrets.APIKEY }}",
+              authDomain: "${{ secrets.AUTHDOMAIN }}",
+              projectId: "${{ secrets.PROJECTID }}",
+              storageBucket: "${{ secrets.STORAGEBUCKET }}",
+              messagingSenderId: "${{ secrets.MESSAGINGSENDERID }}",
+              appId: "${{ secrets.APPID }}"
+            };
+
+            let _initialized = false;
+            let _db = null;
+
+            function init() {
+              try {
+                if (_initialized) return;
+                if (typeof firebase === 'undefined') {
+                  console.warn('Firebase SDK not loaded.');
+                  return;
+                }
+
+                firebase.initializeApp(firebaseConfig);
+                _db = firebase.firestore();
+                _initialized = true;
+                console.info('Firebase initialized');
+              } catch (err) {
+                console.warn('Firebase init error', err);
+              }
+            }
+
+            async function saveSubmission(data) {
+              init();
+              if (!_db) throw new Error('Firestore not initialized');
+
+              const payload = {
+                ...data,
+                created_at: new Date().toISOString()
+              };
+
+              const ref = await _db.collection('contact_submissions').add(payload);
+              return { id: ref.id, ...payload };
+            }
+
+            async function fetchSubmissions() {
+              init();
+              if (!_db) throw new Error('Firestore not initialized');
+
+              const snap = await _db.collection('contact_submissions').orderBy('created_at', 'desc').get();
+              return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            }
+
+            window.FirebaseService = {
+              init,
+              saveSubmission,
+              fetchSubmissions
+            };
+          })();
+          EOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_dir: ./
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
