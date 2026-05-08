@@ -62,16 +62,11 @@
     try {
       hideLoading();
       let rows = [];
-      // Try Firebase first
+      // Require Firebase; don't fall back to local DB on error
       if (window.FirebaseService && typeof FirebaseService.fetchSubmissions === 'function') {
-        try {
-          rows = await FirebaseService.fetchSubmissions();
-        } catch (err) {
-          console.warn('Firebase fetch failed, falling back to local DB', err);
-          rows = await RecarbonDB.getAllSubmissions();
-        }
+        rows = await FirebaseService.fetchSubmissions();
       } else {
-        rows = await RecarbonDB.getAllSubmissions();
+        throw new Error('Firebase service is not available');
       }
 
       // ensure sorted by created_at desc
@@ -102,10 +97,11 @@
         if (window.FirebaseService && typeof FirebaseService.fetchSubmissions === 'function') {
           rows = await FirebaseService.fetchSubmissions();
         } else {
-          rows = await RecarbonDB.getAllSubmissions();
+          throw new Error('Firebase service is not available');
         }
       } catch (err) {
-        rows = [];
+        // propagate error to caller (will be handled by outer try/catch)
+        throw err;
       }
 
       if (q) {
