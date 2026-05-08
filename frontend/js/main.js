@@ -125,24 +125,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const formData = Object.fromEntries(new FormData(form).entries());
-        
-        // Save to IndexedDB
-        await RecarbonDB.addSubmission(formData);
 
-        // Also attempt to save to Firebase if configured (non-blocking)
-        try {
-          if (window.FirebaseService && typeof FirebaseService.saveSubmission === 'function') {
-            FirebaseService.saveSubmission(formData).then(() => {
-              console.info('Saved submission to Firebase');
-            }).catch(err => console.warn('Failed saving to Firebase', err));
-          }
-        } catch (err) {
-          console.warn('Firebase save attempt failed', err);
+        let firebaseResult = null;
+        if (window.FirebaseService && typeof FirebaseService.saveSubmission === 'function') {
+          firebaseResult = await FirebaseService.saveSubmission(formData);
+          console.info('Saved submission to Firebase', firebaseResult?.id || '(no id returned)');
+        } else {
+          throw new Error('Firebase service is not available');
         }
+
+        // Keep a local copy as a backup after Firebase succeeds.
+        await RecarbonDB.addSubmission({
+          ...formData,
+          firebase_id: firebaseResult?.id || null
+        });
 
         form.reset();
         fields.forEach(field => setFieldState(field, ''));
-        setStatus('Your message was saved successfully.', 'success');
+        setStatus(`Saved to Firebase${firebaseResult?.id ? ` (${firebaseResult.id})` : ''}.`, 'success');
         if (submitBtn) submitBtn.textContent = 'Message Sent ✓';
 
         window.setTimeout(() => {
@@ -153,7 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }, 3000);
       } catch (error) {
-        setStatus('Failed to save message. Please try again.', 'error');
+        console.error('Submission failed', error);
+        setStatus(`Failed to save to Firebase: ${error.message || 'unknown error'}`, 'error');
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
