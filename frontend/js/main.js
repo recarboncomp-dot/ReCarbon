@@ -126,9 +126,16 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const formData = Object.fromEntries(new FormData(form).entries());
 
+        setStatus('Sending to Firebase…', '');
+
         let firebaseResult = null;
         if (window.FirebaseService && typeof FirebaseService.saveSubmission === 'function') {
-          firebaseResult = await FirebaseService.saveSubmission(formData);
+          const writePromise = FirebaseService.saveSubmission(formData);
+          const timeoutPromise = new Promise((_, reject) => {
+            window.setTimeout(() => reject(new Error('Firebase write timed out after 15 seconds')), 15000);
+          });
+
+          firebaseResult = await Promise.race([writePromise, timeoutPromise]);
           console.info('Saved submission to Firebase', firebaseResult?.id || '(no id returned)');
         } else {
           throw new Error('Firebase service is not available');
