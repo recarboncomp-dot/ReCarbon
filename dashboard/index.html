@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Recarbon Dashboard</title>
   <meta name="description" content="Live dashboard for Recarbon SQLite contact submissions." />
+  <link rel="icon" href="/frontend/assets/logos.jpg" type="image/jpeg" />
   <link rel="stylesheet" href="/frontend/css/dashboard.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,7 +14,27 @@
   <div class="bg-orb bg-orb--one"></div>
   <div class="bg-orb bg-orb--two"></div>
 
-  <main class="dashboard-shell">
+  <div class="login-overlay" id="loginOverlay" aria-hidden="false">
+    <div class="login-card" role="dialog" aria-labelledby="loginTitle">
+      <p class="eyebrow">Recarbon / Dashboard Access</p>
+      <h1 id="loginTitle">Sign in to continue</h1>
+      <p class="subtitle">Use the dashboard login to view live submissions.</p>
+      <form id="loginForm" class="login-form" autocomplete="off">
+        <label class="login-field">
+          <span>Username</span>
+          <input id="loginUsername" name="username" type="text" required />
+        </label>
+        <label class="login-field">
+          <span>Password</span>
+          <input id="loginPassword" name="password" type="password" required />
+        </label>
+        <button class="login-button" type="submit">Sign in</button>
+        <div class="login-error" id="loginError" role="alert" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <main class="dashboard-shell is-hidden" id="dashboardShell" aria-hidden="true">
     <section class="dashboard-hero">
       <div>
         <p class="eyebrow">Recarbon / Live Contact Submissions</p>
@@ -42,47 +63,15 @@
         <div class="status-meta">Most recent created_at timestamp</div>
       </article>
 
-      <article class="status-card">
-        <span class="status-label">Unique companies</span>
-        <strong id="uniqueCompanies">0</strong>
-        <div class="status-meta">Distinct organisation values</div>
+      <article class="status-card status-card--search">
+        <label class="search-box" for="searchInput">
+          <span>Search submissions</span>
+          <input id="searchInput" type="search" placeholder="Search by name, email, company, or message" autocomplete="off" />
+        </label>
       </article>
-
-      <article class="status-card">
-        <span class="status-label">Refresh cadence</span>
-        <strong id="refreshLabel">Auto-refresh every 6 seconds</strong>
-        <div class="status-meta" id="lastUpdated">Waiting for the first sync…</div>
-      </article>
-    </section>
-
-    <section class="toolbar">
-      <label class="search-box" for="searchInput">
-        <span>Search submissions</span>
-        <input id="searchInput" type="search" placeholder="Search by name, email, company, or message" autocomplete="off" />
-      </label>
-      <div class="toolbar-note">
-        Data storage: <strong>Browser IndexedDB (Local)</strong>
-      </div>
     </section>
 
     <section class="content-grid">
-      <aside class="table-nav">
-        <span class="section-heading">Data Storage</span>
-        <p class="summary-note">
-          The dashboard displays contact form submissions stored in your browser's IndexedDB (local storage).
-        </p>
-
-        <div class="table-list">
-          <div class="table-link active">
-            <div>
-              <strong>contact_submissions</strong>
-              <small>IndexedDB Object Store</small>
-            </div>
-            <small id="tableCount">0 rows</small>
-          </div>
-        </div>
-      </aside>
-
       <section class="table-panel" aria-label="Submission table">
         <div class="table-card">
           <div class="table-card-header">
@@ -91,14 +80,7 @@
               <h2>Contact Submissions</h2>
               <div class="muted">Stored in your browser's IndexedDB.</div>
             </div>
-            <div class="meta-pills">
-              <span class="pill">ID</span>
-              <span class="pill">Name</span>
-              <span class="pill">Email</span>
-              <span class="pill">Company</span>
-              <span class="pill">Message</span>
-              <span class="pill">Created</span>
-            </div>
+            <div class="table-count" id="tableCount">0 rows</div>
           </div>
 
           <div id="loading" class="loading-state">Loading the latest database rows…</div>
@@ -108,7 +90,6 @@
             <table id="submissionsTable" class="db-table">
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>First name</th>
                   <th>Last name</th>
                   <th>Email</th>
@@ -119,7 +100,7 @@
               </thead>
               <tbody id="tableBody">
                 <tr>
-                  <td colspan="7">
+                  <td colspan="6">
                     <div class="empty-state">No data loaded yet.</div>
                   </td>
                 </tr>
