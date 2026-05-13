@@ -55,6 +55,9 @@
 
     showLogin(shell, overlay);
 
+    if (username) username.value = '';
+    if (password) password.value = '';
+
     if (!form) return;
 
     form.addEventListener('submit', (event) => {

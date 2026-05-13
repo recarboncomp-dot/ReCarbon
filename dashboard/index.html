@@ -22,11 +22,11 @@
       <form id="loginForm" class="login-form" autocomplete="off">
         <label class="login-field">
           <span>Username</span>
-          <input id="loginUsername" name="username" type="text" required />
+          <input id="loginUsername" name="login-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" required />
         </label>
         <label class="login-field">
           <span>Password</span>
-          <input id="loginPassword" name="password" type="password" required />
+          <input id="loginPassword" name="login-password" type="password" autocomplete="new-password" required />
         </label>
         <button class="login-button" type="submit">Sign in</button>
         <div class="login-error" id="loginError" role="alert" aria-live="polite"></div>
