@@ -79,9 +79,6 @@
 
 /* Dashboard data loader: prefers Firebase, falls back to IndexedDB */
 (function () {
-  const refreshIntervalMs = 6000;
-  let timer = null;
-
   const $ = id => document.getElementById(id);
 
   const renderTable = (rows) => {
@@ -151,18 +148,11 @@
       rows = rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       renderTable(rows);
       if (lastUpdated) lastUpdated.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
-      const refreshLabel = $('refreshLabel');
-      if (refreshLabel) refreshLabel.textContent = `Auto-refresh every ${refreshIntervalMs/1000} seconds`;
       $('errorBanner')?.style && ($('errorBanner').style.display = 'none');
     } catch (err) {
       console.error(err);
       showError('Failed to load submissions. Check console for details.');
     }
-  }
-
-  function startAutoRefresh() {
-    if (timer) clearInterval(timer);
-    timer = setInterval(loadAndRender, refreshIntervalMs);
   }
 
   function setupSearch() {
@@ -201,7 +191,6 @@
     if (refreshButton) refreshButton.addEventListener('click', loadAndRender);
     setupSearch();
     loadAndRender();
-    startAutoRefresh();
   };
 
   const onReady = window.RecarbonDashboardAuth?.onReady;
@@ -213,14 +202,11 @@
 
 })();
 (() => {
-  const REFRESH_MS = 6000;
-
   const init = () => {
     const els = {
       submissionCount: document.getElementById('submissionCount'),
       latestSubmission: document.getElementById('latestSubmission'),
       uniqueCompanies: document.getElementById('uniqueCompanies'),
-      refreshLabel: document.getElementById('refreshLabel'),
       lastUpdated: document.getElementById('lastUpdated'),
       refreshButton: document.getElementById('refreshButton'),
       searchInput: document.getElementById('searchInput'),
@@ -267,10 +253,6 @@
           dateStyle: 'medium',
           timeStyle: 'short',
         }).format(lastUpdatedAt)}`;
-      }
-
-      if (els.refreshLabel) {
-        els.refreshLabel.textContent = `Auto-refresh every ${Math.round(REFRESH_MS / 1000)} seconds`;
       }
     };
 
@@ -357,7 +339,6 @@
     }
 
     fetchSubmissions();
-    window.setInterval(fetchSubmissions, REFRESH_MS);
   };
 
   const onReady = window.RecarbonDashboardAuth?.onReady;
