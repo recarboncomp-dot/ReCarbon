@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const formData = Object.fromEntries(new FormData(form).entries());
 
-        setStatus('Sending to Firebase…', '');
+        console.log('Submitting form data:', formData);
 
         let firebaseResult = null;
         if (window.FirebaseService && typeof FirebaseService.saveSubmission === 'function') {
@@ -136,12 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
           });
 
           firebaseResult = await Promise.race([writePromise, timeoutPromise]);
-          console.info('Saved submission to Firebase', firebaseResult?.id || '(no id returned)');
+          console.log('Saved submission to Firebase, ID:', firebaseResult?.id || '(no id returned)');
         } else {
           throw new Error('Firebase service is not available');
         }
 
-        // Keep a local copy as a backup after Firebase succeeds.
         await RecarbonDB.addSubmission({
           ...formData,
           firebase_id: firebaseResult?.id || null
@@ -149,7 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         form.reset();
         fields.forEach(field => setFieldState(field, ''));
-        setStatus(`Saved to Firebase${firebaseResult?.id ? ` (${firebaseResult.id})` : ''}.`, 'success');
+        setStatus('Your request has been sent successfully. Please be patient till we contact you.', 'success');
+        console.log('Form submission completed successfully');
         if (submitBtn) submitBtn.textContent = 'Message Sent ✓';
 
         window.setTimeout(() => {
@@ -158,10 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = false;
             submitBtn.textContent = originalText;
           }
-        }, 3000);
+        }, 5000);
       } catch (error) {
-        console.error('Submission failed', error);
-        setStatus(`Failed to save to Firebase: ${error.message || 'unknown error'}`, 'error');
+        console.error('Form submission failed:', error);
+        setStatus('Form has been failed to be sent. you can contact us through Email, Phone number.', 'error');
+        console.log('Form submission failed — user notified to contact via Email/Phone');
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
